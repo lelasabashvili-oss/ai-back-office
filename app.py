@@ -88,25 +88,13 @@ async def chat(request: Request):
     body = await request.json()
     messages = body.get("messages", [])
 
-    async def stream_response():
-        async with client.messages.stream(
-            model="claude-sonnet-4-6",
-            max_tokens=1500,
-            system=SYSTEM_PROMPT,
-            messages=messages,
-        ) as stream:
-            async for text in stream.text_stream:
-                yield f"data: {json.dumps({'text': text})}\n\n"
-        yield "data: [DONE]\n\n"
-
-    return StreamingResponse(
-        stream_response(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-        }
+    response = await client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=1500,
+        system=SYSTEM_PROMPT,
+        messages=messages,
     )
+    return {"text": response.content[0].text}
 
 @app.post("/api/denial-check")
 async def denial_check(request: Request):
